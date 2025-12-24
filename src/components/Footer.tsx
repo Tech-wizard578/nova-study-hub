@@ -60,7 +60,7 @@ const Footer = () => {
               <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="font-display font-bold text-xl gradient-text">StudyVerse</span>
+              <span className="font-display font-bold text-xl gradient-text">VignanVerse</span>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
               Empowering students with AI-powered learning tools for academic excellence.
@@ -102,7 +102,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-border">
           <p className="text-sm text-muted-foreground mb-4 md:mb-0">
-            © 2024 StudyVerse. All rights reserved.
+            © 2024 VignanVerse. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
