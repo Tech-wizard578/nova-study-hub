@@ -52,7 +52,7 @@ const HeroSection = () => {
           Your{' '}
           <span className="gradient-text text-glow">AI-Powered</span>
           <br />
-          Study Universe
+          Vignan Universe
         </h1>
 
         {/* Subheadline */}

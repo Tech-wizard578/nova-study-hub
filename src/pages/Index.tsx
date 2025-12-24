@@ -12,16 +12,16 @@ const Index = () => {
   return (
     <>
       <Helmet>
-        <title>StudyVerse - AI-Powered Study Platform for College Students</title>
+        <title>VignanVerse - AI-Powered Study Platform for College Students</title>
         <meta 
           name="description" 
-          content="Transform your learning with StudyVerse. AI-powered summaries, study materials, question banks, and a vibrant community. Join 50K+ students excelling today." 
+          content="Transform your learning with VignanVerse. AI-powered summaries, study materials, question banks, and a vibrant community. Join 50K+ students excelling today." 
         />
         <meta name="keywords" content="study platform, AI learning, college students, study materials, question banks, AI summarizer" />
-        <meta property="og:title" content="StudyVerse - Your AI-Powered Study Universe" />
+        <meta property="og:title" content="VignanVerse - Your AI-Powered Study Universe" />
         <meta property="og:description" content="Transform the way you learn with intelligent summaries, personalized quizzes, and a vibrant community of learners." />
         <meta property="og:type" content="website" />
-        <link rel="canonical" href="https://studyverse.app" />
+        <link rel="canonical" href="https://vignanverse.app" />
       </Helmet>
 
       <div className="relative min-h-screen bg-background text-foreground overflow-x-hidden">
