@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Brain, Sparkles, CheckCircle2, XCircle, Trophy } from 'lucide-react';
-import { getDailyQuestion, submitAnswer } from '@/services/questionsService';
+import { getDailyQuestion, submitAnswer, getRandomQuestion } from '@/services/questionsService';
 import type { AptitudeQuestion } from '@/services/aiService';
 import confetti from 'canvas-confetti';
 import { supabase } from '@/lib/supabase';
@@ -47,8 +47,8 @@ const EntryGateModal = () => {
     }, []);
 
     const loadQuestion = async () => {
-        const dailyQuestion = await getDailyQuestion();
-        setQuestion(dailyQuestion);
+        const randomQuestion = await getRandomQuestion();
+        setQuestion(randomQuestion);
     };
 
     const handleNicknameSubmit = () => {

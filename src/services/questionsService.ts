@@ -35,6 +35,32 @@ export const getDailyQuestion = async (): Promise<AptitudeQuestion | null> => {
 };
 
 /**
+ * Get a random question from the question bank
+ * Useful for varying questions each time the modal opens
+ */
+export const getRandomQuestion = async (): Promise<AptitudeQuestion | null> => {
+    try {
+        const randomIndex = Math.floor(Math.random() * questionBank.length);
+        const randomQuestion = questionBank[randomIndex];
+
+        // Convert to AptitudeQuestion format
+        const question: AptitudeQuestion = {
+            question: randomQuestion.question,
+            options: randomQuestion.options,
+            correct_answer: randomQuestion.correct_answer,
+            explanation: randomQuestion.explanation,
+            difficulty: randomQuestion.difficulty,
+            subject: randomQuestion.subject,
+        };
+
+        return question;
+    } catch (error) {
+        console.error('Error in getRandomQuestion:', error);
+        return null;
+    }
+};
+
+/**
  * Submit an answer to the daily question
  * Returns whether the answer was correct and points earned
  */
