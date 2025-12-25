@@ -8,6 +8,7 @@ interface AuthContextType {
     signIn: (email: string, password: string) => Promise<void>
     signUp: (email: string, password: string, name: string, batch: string, section: string) => Promise<void>
     signOut: () => Promise<void>
+    updateNickname: (nickname: string) => Promise<void>
     loading: boolean
 }
 
@@ -162,6 +163,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('AuthContext: Supabase signIn success')
     }
 
+    const updateNickname = async (nickname: string) => {
+        if (!user) throw new Error('No user logged in')
+
+        const { error } = await supabase
+            .from('users')
+            .update({ nickname })
+            .eq('id', user.id)
+
+        if (error) throw error
+
+        // Reload profile to get updated nickname
+        await loadProfile(user.id)
+    }
+
     const signOut = async () => {
         const { error } = await supabase.auth.signOut()
         if (error) throw error
@@ -173,6 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signUp,
         signOut,
+        updateNickname,
         loading
     }
 

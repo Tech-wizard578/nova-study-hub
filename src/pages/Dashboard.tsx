@@ -7,6 +7,7 @@ import { getMaterials, subscribeToMaterials } from '@/services/materialsService'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { BookOpen, Download, Upload, TrendingUp, Zap, FileText, Sparkles, LogOut } from 'lucide-react'
 import { downloadFile } from '@/utils/downloadHelper'
+import VoiceAssistant from '@/components/VoiceAssistant'
 
 const Dashboard = () => {
     const { user, profile, loading, signOut } = useAuth()
@@ -270,6 +271,9 @@ const Dashboard = () => {
                     )}
                 </div>
             </main>
+
+            {/* Voice Assistant */}
+            <VoiceAssistant />
         </div>
     )
 }

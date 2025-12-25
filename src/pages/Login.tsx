@@ -49,7 +49,7 @@ const Login = () => {
                         <Sparkles className="h-6 w-6 text-primary-foreground" />
                     </div>
                     <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-                        VignanVerse
+                        Vignanits
                     </span>
                 </div>
 

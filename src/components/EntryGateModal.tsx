@@ -25,7 +25,7 @@ const EntryGateModal = () => {
 
         // Check if user has already completed the challenge today (skip if forced)
         if (!forceEntry) {
-            const storedData = localStorage.getItem('vignanverse_entry');
+            const storedData = localStorage.getItem('vignanits_entry');
             if (storedData) {
                 try {
                     const data = JSON.parse(storedData);
@@ -56,6 +56,17 @@ const EntryGateModal = () => {
             alert('Please enter a valid nickname (at least 2 characters)');
             return;
         }
+
+        // Save nickname to localStorage immediately
+        localStorage.setItem('vignanits_entry', JSON.stringify({
+            nickname: nickname.trim(),
+            lastCompleted: null,
+            hasAccess: false
+        }));
+
+        // Set flag to trigger voice greeting after question is answered
+        localStorage.setItem('vignanits_should_greet', 'true');
+
         setStep('question');
     };
 
@@ -105,7 +116,7 @@ const EntryGateModal = () => {
                         .from('users')
                         .insert([{
                             name: nickname,
-                            email: `${nickname.toLowerCase().replace(/\s+/g, '')}@vignanverse.temp`,
+                            email: `${nickname.toLowerCase().replace(/\s+/g, '')}@vignanits.temp`,
                             points: points,
                             streak_days: 1
                         }]);
@@ -121,7 +132,7 @@ const EntryGateModal = () => {
                 hasAccess: true,
                 points
             };
-            localStorage.setItem('vignanverse_entry', JSON.stringify(data));
+            localStorage.setItem('vignanits_entry', JSON.stringify(data));
 
             // Show success screen
             setTimeout(() => setStep('success'), 1500);
@@ -155,7 +166,7 @@ const EntryGateModal = () => {
                         <div className="mb-8">
                             <Brain className="w-16 h-16 mx-auto mb-4 text-primary" />
                             <h1 className="font-display text-3xl md:text-4xl font-bold mb-4">
-                                Welcome to <span className="gradient-text">VignanVerse</span>!
+                                Welcome to <span className="gradient-text">Vignanits</span>!
                             </h1>
                             <p className="text-lg text-muted-foreground">
                                 Before you enter, tell us your nickname
@@ -196,7 +207,7 @@ const EntryGateModal = () => {
                                 Answer to <span className="gradient-text">Enter</span>
                             </h2>
                             <p className="text-muted-foreground">
-                                Get it right to access VignanVerse!
+                                Get it right to access Vignanits!
                             </p>
                         </div>
 
@@ -326,7 +337,7 @@ const EntryGateModal = () => {
                                 You answered correctly!
                             </p>
                             <p className="text-lg text-muted-foreground">
-                                Welcome to VignanVerse - Your AI-Powered Study Universe
+                                Welcome to Vignanits - Your AI-Powered Study Universe
                             </p>
                         </div>
 

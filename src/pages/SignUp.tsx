@@ -55,12 +55,12 @@ const SignUp = () => {
                         <Sparkles className="h-6 w-6 text-primary-foreground" />
                     </div>
                     <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-                        VignanVerse
+                        Vignanits
                     </span>
                 </div>
 
                 <div className="text-center mb-8">
-                    <h1 className="text-2xl font-bold mb-2">Join VignanVerse</h1>
+                    <h1 className="text-2xl font-bold mb-2">Join Vignanits</h1>
                     <p className="text-muted-foreground">Start your AI-powered learning journey</p>
                 </div>
 

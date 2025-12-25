@@ -8,21 +8,22 @@ import EntryGateModal from '@/components/EntryGateModal';
 import LeaderboardSection from '@/components/LeaderboardSection';
 import StudyMaterialsSection from '@/components/StudyMaterialsSection';
 import Footer from '@/components/Footer';
+import VoiceAssistant from '@/components/VoiceAssistant';
 
 const Index = () => {
   return (
     <>
       <Helmet>
-        <title>VignanVerse - AI-Powered Study Platform for College Students</title>
+        <title>Vignanits - AI-Powered Study Platform for College Students</title>
         <meta
           name="description"
-          content="Transform your learning with VignanVerse. AI-powered summaries, study materials, question banks, and a vibrant community. Join 50K+ students excelling today."
+          content="Transform your learning with Vignanits. AI-powered summaries, study materials, question banks, and a vibrant community. Join 50K+ students excelling today."
         />
         <meta name="keywords" content="study platform, AI learning, college students, study materials, question banks, AI summarizer" />
-        <meta property="og:title" content="VignanVerse - Your AI-Powered Study Universe" />
+        <meta property="og:title" content="Vignanits - Your AI-Powered Study Universe" />
         <meta property="og:description" content="Transform the way you learn with intelligent summaries, personalized quizzes, and a vibrant community of learners." />
         <meta property="og:type" content="website" />
-        <link rel="canonical" href="https://vignanverse.app" />
+        <link rel="canonical" href="https://vignanits.app" />
       </Helmet>
 
       {/* Entry Gate Modal - appears on first visit */}
@@ -42,6 +43,9 @@ const Index = () => {
 
         <Footer />
       </div>
+
+      {/* Voice Assistant - available for all users */}
+      <VoiceAssistant />
     </>
   );
 };

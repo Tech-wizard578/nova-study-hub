@@ -20,7 +20,7 @@ const Footer = () => {
     <footer className="relative pt-24 pb-8 px-4 overflow-hidden">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-background to-background" />
-      
+
       {/* Decorative elements */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[100px]" />
       <div className="absolute top-0 right-1/4 w-80 h-80 bg-secondary/5 rounded-full blur-[100px]" />
@@ -60,7 +60,7 @@ const Footer = () => {
               <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="font-display font-bold text-xl gradient-text">VignanVerse</span>
+              <span className="font-display font-bold text-xl gradient-text">Vignanits</span>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
               Empowering students with AI-powered learning tools for academic excellence.
@@ -102,7 +102,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-border">
           <p className="text-sm text-muted-foreground mb-4 md:mb-0">
-            © 2024 VignanVerse. All rights reserved.
+            © 2024 Vignanits. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
