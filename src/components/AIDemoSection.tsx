@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Loader2, Copy, Check } from 'lucide-react';
+import { summarizeText } from '@/services/aiService';
+import { toast } from 'sonner';
 
 const AIDemoSection = () => {
   const [inputText, setInputText] = useState('');
@@ -10,16 +12,16 @@ const AIDemoSection = () => {
 
   const sampleText = `Photosynthesis is a process used by plants and other organisms to convert light energy into chemical energy that, through cellular respiration, can later be released to fuel the organism's activities. Some of this chemical energy is stored in carbohydrate molecules, such as sugars and starches, which are synthesized from carbon dioxide and water. In most cases, oxygen is also released as a waste product that stores three times more chemical energy than the carbohydrates. Most plants, algae, and cyanobacteria perform photosynthesis; such organisms are called photoautotrophs.`;
 
-  const handleSummarize = () => {
+  const handleSummarize = async () => {
     if (!inputText.trim()) return;
-    
+
     setIsProcessing(true);
     setSummary('');
 
-    // Simulate AI processing with streaming effect
-    setTimeout(() => {
-      const summaryText = "🌱 Photosynthesis converts light energy to chemical energy in plants. This energy is stored as sugars from CO₂ and water, with oxygen released as a byproduct. Organisms that perform this process are called photoautotrophs.";
-      
+    try {
+      const summaryText = await summarizeText(inputText);
+
+      // Animate the streaming effect
       let currentIndex = 0;
       const interval = setInterval(() => {
         if (currentIndex < summaryText.length) {
@@ -30,7 +32,11 @@ const AIDemoSection = () => {
           setIsProcessing(false);
         }
       }, 20);
-    }, 500);
+    } catch (error) {
+      console.error('AI Error:', error);
+      toast.error('Failed to generate summary. Please try again.');
+      setIsProcessing(false);
+    }
   };
 
   const handleCopy = () => {
@@ -53,7 +59,7 @@ const AIDemoSection = () => {
             <span className="gradient-text">AI Magic</span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            See our AI summarizer in action. Paste any text and watch it transform 
+            See our AI summarizer in action. Paste any text and watch it transform
             into a concise, easy-to-understand summary.
           </p>
         </div>
@@ -144,7 +150,7 @@ const AIDemoSection = () => {
                     </p>
                   </div>
                 )}
-                
+
                 {/* Processing indicator */}
                 {isProcessing && (
                   <div className="absolute bottom-4 left-4 flex items-center gap-2">
@@ -157,7 +163,7 @@ const AIDemoSection = () => {
                   </div>
                 )}
               </div>
-              
+
               {summary && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <div className="w-2 h-2 bg-secondary rounded-full" />

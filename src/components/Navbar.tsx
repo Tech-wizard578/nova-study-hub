@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Menu, X, Sparkles } from 'lucide-react';
 
@@ -40,12 +41,16 @@ const Navbar = () => {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-              Sign In
-            </Button>
-            <Button variant="glow" size="lg">
-              Get Started
-            </Button>
+            <Link to="/login">
+              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+                Sign In
+              </Button>
+            </Link>
+            <Link to="/signup">
+              <Button variant="glow" size="lg">
+                Get Started
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -72,12 +77,16 @@ const Navbar = () => {
                 </a>
               ))}
               <hr className="border-border" />
-              <Button variant="ghost" className="justify-start">
-                Sign In
-              </Button>
-              <Button variant="glow">
-                Get Started
-              </Button>
+              <Link to="/login">
+                <Button variant="ghost" className="justify-start">
+                  Sign In
+                </Button>
+              </Link>
+              <Link to="/signup">
+                <Button variant="glow">
+                  Get Started
+                </Button>
+              </Link>
             </div>
           </div>
         )}

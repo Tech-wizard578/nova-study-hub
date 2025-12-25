@@ -10,7 +10,6 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-*.local
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +21,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files (keep .env.template, ignore .env.local)
+.env
+.env.local
+.env.*.local
+
+# Temporary scripts (debug/test only)
+reproduce_signup.ts
+verify_profile.ts
+
+# Build & distribution
+.turbo
+
+# Supabase local dev (optional)
+.supabase/
