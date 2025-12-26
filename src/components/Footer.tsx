@@ -1,7 +1,14 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Twitter, Github, Linkedin, Instagram, Mail, ArrowRight } from 'lucide-react';
+import { Sparkles, Twitter, Github, Linkedin, Instagram, Mail, ArrowRight, Loader2, Check } from 'lucide-react';
+import { subscribeToNewsletter } from '@/services/newsletterService';
+import { toast } from 'sonner';
 
 const Footer = () => {
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
   const footerLinks = {
     Product: ['Features', 'AI Tools', 'Study Materials', 'Question Banks', 'Pricing'],
     Company: ['About Us', 'Careers', 'Blog', 'Press Kit', 'Partners'],
@@ -15,6 +22,36 @@ const Footer = () => {
     { icon: Linkedin, href: '#', label: 'LinkedIn' },
     { icon: Instagram, href: '#', label: 'Instagram' },
   ];
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!email.trim()) {
+      toast.error('Please enter your email address');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const result = await subscribeToNewsletter(email);
+
+      if (result.success) {
+        toast.success(result.message);
+        setEmail('');
+        setIsSubscribed(true);
+        // Reset success state after 5 seconds
+        setTimeout(() => setIsSubscribed(false), 5000);
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error('Subscription error:', error);
+      toast.error('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <footer className="relative pt-24 pb-8 px-4 overflow-hidden">
@@ -39,17 +76,39 @@ const Footer = () => {
           <p className="text-muted-foreground max-w-xl mx-auto mb-8">
             Get weekly study tips, new materials, and exclusive AI features delivered to your inbox.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+          <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
             <input
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
-              className="flex-1 h-12 px-4 bg-background/50 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
+              disabled={isSubmitting || isSubscribed}
+              className="flex-1 h-12 px-4 bg-background/50 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             />
-            <Button variant="glow" className="group">
-              Subscribe
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            <Button
+              type="submit"
+              variant="glow"
+              className="group"
+              disabled={isSubmitting || isSubscribed}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Subscribing...
+                </>
+              ) : isSubscribed ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Subscribed!
+                </>
+              ) : (
+                <>
+                  Subscribe
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </>
+              )}
             </Button>
-          </div>
+          </form>
         </div>
 
         {/* Footer Links */}
@@ -102,7 +161,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-border">
           <p className="text-sm text-muted-foreground mb-4 md:mb-0">
-            © 2024 Vignanits. All rights reserved.
+            © 2026 Vignanits. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
