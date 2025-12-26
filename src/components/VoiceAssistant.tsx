@@ -52,6 +52,7 @@ const VoiceAssistant = () => {
     const [motivationAudio, setMotivationAudio] = useState<HTMLAudioElement | null>(null)
     const [isPlayingMotivation, setIsPlayingMotivation] = useState(false)
     const [showHeadphoneNotice, setShowHeadphoneNotice] = useState(false)
+    const [showBreakReminder, setShowBreakReminder] = useState(false)
 
     // Get time-based greeting
     const getTimeBasedGreeting = useCallback(() => {
@@ -201,6 +202,15 @@ const VoiceAssistant = () => {
             if (remaining <= 0) {
                 setTimeRemaining(0)
                 endFocusMode()
+
+                // Trigger creative break reminder
+                setShowBreakReminder(true)
+                speak("Great work! You've completed your focus session. Time for a well-deserved break! Remember, a 5-minute break keeps your mind fresh and productive.")
+
+                // Auto-hide after 15 seconds
+                setTimeout(() => {
+                    setShowBreakReminder(false)
+                }, 15000)
             } else {
                 setTimeRemaining(remaining)
             }
@@ -320,21 +330,24 @@ const VoiceAssistant = () => {
         }
     }
 
-    // Handle start focus mode with auto-selection and headphone notice
+    // Handle start focus mode with required music selection
     const handleStartFocusMode = () => {
-        // Automatically select intense study binaural beats
-        setMusicType('intense')
+        // Require music selection before starting
+        if (!musicType) {
+            toast.error('Please select a binaural beats type before starting your focus session!')
+            return
+        }
 
         // Show creative headphone notification
         setShowHeadphoneNotice(true)
-
-        // Start focus mode with music enabled
-        startFocusMode(focusDuration, true)
 
         // Hide notification after 5 seconds
         setTimeout(() => {
             setShowHeadphoneNotice(false)
         }, 5000)
+
+        // Start focus mode with music enabled
+        startFocusMode(focusDuration, true)
     }
 
 
@@ -438,6 +451,45 @@ const VoiceAssistant = () => {
                                                 Use headphones for an immersive binaural beats experience
                                             </p>
                                         </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Creative Break Reminder - Triggered after focus session */}
+                            {showBreakReminder && (
+                                <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-teal-500/20 border-2 border-green-500/50 p-4 animate-scale-in shadow-lg">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 animate-pulse" />
+                                    {/* Confetti effect */}
+                                    <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                                        <div className="absolute top-2 left-4 text-2xl animate-bounce">🎉</div>
+                                        <div className="absolute top-3 right-6 text-xl animate-bounce" style={{ animationDelay: '0.2s' }}>✨</div>
+                                        <div className="absolute top-1 right-12 text-lg animate-bounce" style={{ animationDelay: '0.4s' }}>🌟</div>
+                                    </div>
+                                    <div className="relative flex items-center gap-3">
+                                        <div className="flex-shrink-0">
+                                            <Coffee className="w-10 h-10 text-green-400 animate-pulse" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-bold text-green-100 mb-1">
+                                                🎊 Awesome! Focus Session Complete!
+                                            </p>
+                                            <p className="text-xs text-green-200/90 mb-2">
+                                                You've earned a break! Take 5 minutes to recharge.
+                                            </p>
+                                            <div className="flex items-center gap-2 text-xs text-green-300/80">
+                                                <span>💧 Hydrate</span>
+                                                <span>•</span>
+                                                <span>🚶 Stretch</span>
+                                                <span>•</span>
+                                                <span>👀 Rest your eyes</span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowBreakReminder(false)}
+                                            className="flex-shrink-0 text-green-300 hover:text-green-100 transition-colors"
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -551,15 +603,6 @@ const VoiceAssistant = () => {
                                         Motivate Me
                                     </Button>
                                 )}
-                                <Button
-                                    onClick={() => speak("Remember to take breaks! A 5-minute break every hour keeps your mind fresh.")}
-                                    variant="outline"
-                                    className="w-full"
-                                    disabled={isSpeaking}
-                                >
-                                    <Coffee className="w-4 h-4 mr-2" />
-                                    Break Reminder
-                                </Button>
                             </div>
 
                             {/* Voice Controls */}
