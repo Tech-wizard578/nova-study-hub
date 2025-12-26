@@ -96,7 +96,7 @@ const LeaderboardSection = () => {
   };
 
   return (
-    <section id="leaderboard" className="relative py-24 px-4">
+    <section id="leaderboard" className="relative py-24 px-4" data-tour="leaderboard">
       <div className="max-w-4xl mx-auto">
         {/* Section Header */}
         <div className="text-center mb-16">

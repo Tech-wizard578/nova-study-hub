@@ -22,6 +22,48 @@ export async function summarizeText(text: string): Promise<string> {
     }
 }
 
+export async function summarizeFile(file: File): Promise<string> {
+    try {
+        // Convert file to base64 for inline data
+        const fileData = await fileToGenerativePart(file);
+
+        // Generate summary using the file data
+        const prompt = file.type.startsWith('audio/')
+            ? "Please transcribe this audio file and provide a concise summary of the main points discussed in 3-4 sentences."
+            : "Please analyze this document and provide a concise summary of the main points in 3-4 sentences.";
+
+        const result = await model.generateContent([
+            fileData,
+            { text: prompt }
+        ]);
+
+        return result.response.text();
+    } catch (error) {
+        console.error("Error summarizing file:", error);
+        throw error;
+    }
+}
+
+// Helper function to convert File to GenerativePart
+async function fileToGenerativePart(file: File): Promise<{ inlineData: { data: string; mimeType: string } }> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64data = reader.result as string;
+            // Remove the data URL prefix (e.g., "data:application/pdf;base64,")
+            const base64 = base64data.split(',')[1];
+            resolve({
+                inlineData: {
+                    data: base64,
+                    mimeType: file.type
+                }
+            });
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
 export async function chatWithAI(question: string, context?: string): Promise<string> {
     try {
         const systemPrompt = context

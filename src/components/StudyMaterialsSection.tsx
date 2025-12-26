@@ -71,7 +71,7 @@ const StudyMaterialsSection = () => {
   ];
 
   return (
-    <section id="materials" className="relative py-24 px-4">
+    <section id="materials" className="relative py-24 px-4" data-tour="study-materials">
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
         <div className="text-center mb-16">
@@ -110,8 +110,8 @@ const StudyMaterialsSection = () => {
                 key={category}
                 onClick={() => setActiveCategory(category)}
                 className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ${activeCategory === category
-                    ? 'bg-gradient-primary text-primary-foreground'
-                    : 'bg-card/60 text-muted-foreground hover:text-foreground border border-white/10'
+                  ? 'bg-gradient-primary text-primary-foreground'
+                  : 'bg-card/60 text-muted-foreground hover:text-foreground border border-white/10'
                   }`}
               >
                 {category}
@@ -179,8 +179,8 @@ const StudyMaterialsSection = () => {
                   <div
                     key={material.id}
                     className={`absolute transition-all duration-500 ${isActive
-                        ? 'z-20 scale-100 opacity-100'
-                        : 'z-10 scale-90 opacity-60'
+                      ? 'z-20 scale-100 opacity-100'
+                      : 'z-10 scale-90 opacity-60'
                       }`}
                     style={{
                       transform: `
@@ -250,8 +250,8 @@ const StudyMaterialsSection = () => {
                     key={index}
                     onClick={() => setCurrentIndex(index)}
                     className={`w-2 h-2 rounded-full transition-all duration-300 ${index === currentIndex
-                        ? 'w-8 bg-gradient-primary'
-                        : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                      ? 'w-8 bg-gradient-primary'
+                      : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
                       }`}
                   />
                 ))}

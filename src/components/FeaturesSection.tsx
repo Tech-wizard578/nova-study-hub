@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { 
-  Sparkles, 
-  FileText, 
-  HelpCircle, 
-  Puzzle, 
-  MessageSquare, 
-  Bot,
+import {
+  Sparkles,
+  FileText,
+  HelpCircle,
+  Puzzle,
+  MessageSquare,
+  Code,
   ArrowRight
 } from 'lucide-react';
+import TryItLive from './TryItLive';
 
 const features = [
   {
@@ -47,9 +48,9 @@ const features = [
     bgGlow: 'bg-secondary/20',
   },
   {
-    icon: Bot,
-    title: 'AI Chatbot',
-    description: '24/7 intelligent tutoring assistant ready to answer your questions and guide your learning.',
+    icon: Code,
+    title: 'Code Compiler',
+    description: 'Write, compile, and run code in multiple languages with our interactive sandbox environment.',
     color: 'from-accent to-primary',
     bgGlow: 'bg-accent/20',
   },
@@ -57,6 +58,7 @@ const features = [
 
 const FeaturesSection = () => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [showTryItLive, setShowTryItLive] = useState(false);
 
   return (
     <section id="features" className="relative py-24 px-4">
@@ -72,7 +74,7 @@ const FeaturesSection = () => {
             <span className="gradient-text">Excel</span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Our platform combines cutting-edge AI with proven study techniques to 
+            Our platform combines cutting-edge AI with proven study techniques to
             supercharge your learning experience.
           </p>
         </div>
@@ -88,23 +90,20 @@ const FeaturesSection = () => {
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               {/* Card */}
-              <div 
-                className={`glass-card p-8 h-full transition-all duration-500 card-3d ${
-                  hoveredIndex === index ? 'border-primary/50' : ''
-                }`}
+              <div
+                className={`glass-card p-8 h-full transition-all duration-500 card-3d ${hoveredIndex === index ? 'border-primary/50' : ''
+                  }`}
               >
                 {/* Glow effect on hover */}
-                <div 
-                  className={`absolute inset-0 rounded-2xl ${feature.bgGlow} blur-xl opacity-0 transition-opacity duration-500 ${
-                    hoveredIndex === index ? 'opacity-50' : ''
-                  }`}
+                <div
+                  className={`absolute inset-0 rounded-2xl ${feature.bgGlow} blur-xl opacity-0 transition-opacity duration-500 ${hoveredIndex === index ? 'opacity-50' : ''
+                    }`}
                 />
 
                 {/* Icon */}
-                <div 
-                  className={`relative w-14 h-14 rounded-xl bg-gradient-to-br ${feature.color} p-3 mb-6 transition-transform duration-300 ${
-                    hoveredIndex === index ? 'scale-110 rotate-3' : ''
-                  }`}
+                <div
+                  className={`relative w-14 h-14 rounded-xl bg-gradient-to-br ${feature.color} p-3 mb-6 transition-transform duration-300 ${hoveredIndex === index ? 'scale-110 rotate-3' : ''
+                    }`}
                 >
                   <feature.icon className="w-full h-full text-primary-foreground" />
                 </div>
@@ -118,11 +117,15 @@ const FeaturesSection = () => {
                 </p>
 
                 {/* CTA */}
-                <Button 
-                  variant="ghost" 
-                  className={`group/btn p-0 h-auto font-semibold transition-all duration-300 ${
-                    hoveredIndex === index ? 'text-primary' : 'text-muted-foreground'
-                  }`}
+                <Button
+                  variant="ghost"
+                  className={`group/btn p-0 h-auto font-semibold transition-all duration-300 ${hoveredIndex === index ? 'text-primary' : 'text-muted-foreground'
+                    }`}
+                  onClick={() => {
+                    if (feature.title === 'Code Compiler') {
+                      setShowTryItLive(true);
+                    }
+                  }}
                 >
                   Explore
                   <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover/btn:translate-x-1" />
@@ -132,6 +135,14 @@ const FeaturesSection = () => {
           ))}
         </div>
       </div>
+
+      {/* Try It Live Modal */}
+      {showTryItLive && (
+        <TryItLive
+          isOpen={showTryItLive}
+          onClose={() => setShowTryItLive(false)}
+        />
+      )}
     </section>
   );
 };

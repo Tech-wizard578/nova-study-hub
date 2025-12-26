@@ -7,9 +7,11 @@ interface DemoTheaterProps {
     isOpen: boolean;
     onClose: () => void;
     onLaunchQuickTour: () => void;
+    onLaunchFeatureShowcase: () => void;
+    onLaunchTryItLive: () => void;
 }
 
-const DemoTheater = ({ isOpen, onClose, onLaunchQuickTour }: DemoTheaterProps) => {
+const DemoTheater = ({ isOpen, onClose, onLaunchQuickTour, onLaunchFeatureShowcase, onLaunchTryItLive }: DemoTheaterProps) => {
     const [isClosing, setIsClosing] = useState(false);
     const [selectedDemo, setSelectedDemo] = useState<string | null>(null);
 
@@ -28,7 +30,6 @@ const DemoTheater = ({ isOpen, onClose, onLaunchQuickTour }: DemoTheaterProps) =
             description: '2-minute overview of key features',
             icon: Zap,
             color: 'from-yellow-500 to-orange-500',
-            badge: '⚡ Fast',
         },
         {
             id: 'feature-showcase',
@@ -36,23 +37,13 @@ const DemoTheater = ({ isOpen, onClose, onLaunchQuickTour }: DemoTheaterProps) =
             description: 'Interactive walkthrough of all features',
             icon: Target,
             color: 'from-blue-500 to-cyan-500',
-            badge: '🎯 Detailed',
         },
         {
             id: 'try-live',
             title: 'Try It Live',
-            description: 'Hands-on sandbox experience',
+            description: 'Hands-on sandbox experience with code compiler',
             icon: Gamepad2,
             color: 'from-purple-500 to-pink-500',
-            badge: '🎮 Interactive',
-        },
-        {
-            id: 'success-stories',
-            title: 'Success Stories',
-            description: 'Real student testimonials & results',
-            icon: TrendingUp,
-            color: 'from-green-500 to-emerald-500',
-            badge: '📊 Inspiring',
         },
     ];
 
@@ -62,6 +53,12 @@ const DemoTheater = ({ isOpen, onClose, onLaunchQuickTour }: DemoTheaterProps) =
         if (id === 'quick-tour') {
             // Launch Quick Tour via parent callback
             onLaunchQuickTour();
+        } else if (id === 'feature-showcase') {
+            // Launch Feature Showcase via parent callback
+            onLaunchFeatureShowcase();
+        } else if (id === 'try-live') {
+            // Launch Try It Live via parent callback
+            onLaunchTryItLive();
         } else {
             // Other demos - show coming soon
             toast.success(`🎬 Loading ${title}...`, {
@@ -138,19 +135,15 @@ const DemoTheater = ({ isOpen, onClose, onLaunchQuickTour }: DemoTheaterProps) =
                                     key={option.id}
                                     onClick={() => handleDemoClick(option.id, option.title)}
                                     disabled={selectedDemo !== null}
-                                    className={`group relative p-6 rounded-xl border-2 transition-all duration-300 ${isSelected
-                                        ? 'border-primary bg-primary/10 scale-105'
-                                        : 'border-white/10 bg-card/60 hover:border-primary/50 hover:bg-card/80 hover:scale-105'
+                                    className={`group relative p-6 rounded-xl border-2 transition-all duration-300 ${option.id === 'try-live' ? 'md:col-span-2' : ''
+                                        } ${isSelected
+                                            ? 'border-primary bg-primary/10 scale-105'
+                                            : 'border-white/10 bg-card/60 hover:border-primary/50 hover:bg-card/80 hover:scale-105'
                                         } ${selectedDemo && !isSelected ? 'opacity-50' : ''}`}
                                     style={{ animationDelay: `${index * 0.1}s` }}
                                 >
                                     {/* Gradient background */}
                                     <div className={`absolute inset-0 bg-gradient-to-br ${option.color} opacity-0 group-hover:opacity-10 transition-opacity rounded-xl`} />
-
-                                    {/* Badge */}
-                                    <div className="absolute -top-3 -right-3 text-2xl">
-                                        {option.badge}
-                                    </div>
 
                                     {/* Content */}
                                     <div className="relative">

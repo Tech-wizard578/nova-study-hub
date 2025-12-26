@@ -299,8 +299,8 @@ const VoiceAssistant = () => {
             motivationAudio.currentTime = 0
         }
 
-        // Randomly select one of the two audio files
-        const audioFiles = ['/audio/motivation-1.mp3', '/audio/motivation-2.mp3']
+        // Randomly select one of the three audio files
+        const audioFiles = ['/audio/motivation-1.mp3', '/audio/motivation-2.mp3', '/audio/motivation-3.mp3']
         const randomIndex = Math.floor(Math.random() * audioFiles.length)
         const selectedAudio = audioFiles[randomIndex]
 
@@ -414,7 +414,7 @@ const VoiceAssistant = () => {
     return (
         <>
             {/* Floating Button */}
-            <div className="fixed bottom-6 right-6 z-50">
+            <div className="fixed bottom-6 right-6 z-50" data-tour="voice-assistant">
                 {!isExpanded ? (
                     <Button
                         onClick={() => setIsExpanded(true)}

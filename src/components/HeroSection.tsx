@@ -4,11 +4,17 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 import DemoTheater from './DemoTheater';
 import QuickTour from './QuickTour';
+import FeatureShowcase from './FeatureShowcase';
+import TryItLive from './TryItLive';
+import GuidedTour from './GuidedTour';
 
 const HeroSection = () => {
   const [isClicked, setIsClicked] = useState(false);
   const [showDemoTheater, setShowDemoTheater] = useState(false);
   const [showQuickTour, setShowQuickTour] = useState(false);
+  const [showFeatureShowcase, setShowFeatureShowcase] = useState(false);
+  const [showTryItLive, setShowTryItLive] = useState(false);
+  const [showGuidedTour, setShowGuidedTour] = useState(false);
 
   const handleStartLearning = () => {
     // Add click animation
@@ -149,7 +155,15 @@ const HeroSection = () => {
           onClose={() => setShowDemoTheater(false)}
           onLaunchQuickTour={() => {
             setShowDemoTheater(false);
-            setTimeout(() => setShowQuickTour(true), 600);
+            setTimeout(() => setShowGuidedTour(true), 600);
+          }}
+          onLaunchFeatureShowcase={() => {
+            setShowDemoTheater(false);
+            setTimeout(() => setShowFeatureShowcase(true), 600);
+          }}
+          onLaunchTryItLive={() => {
+            setShowDemoTheater(false);
+            setTimeout(() => setShowTryItLive(true), 600);
           }}
         />
       )}
@@ -159,6 +173,30 @@ const HeroSection = () => {
         <QuickTour
           isOpen={showQuickTour}
           onClose={() => setShowQuickTour(false)}
+        />
+      )}
+
+      {/* Feature Showcase Modal */}
+      {showFeatureShowcase && (
+        <FeatureShowcase
+          isOpen={showFeatureShowcase}
+          onClose={() => setShowFeatureShowcase(false)}
+        />
+      )}
+
+      {/* Try It Live Modal */}
+      {showTryItLive && (
+        <TryItLive
+          isOpen={showTryItLive}
+          onClose={() => setShowTryItLive(false)}
+        />
+      )}
+
+      {/* Guided Tour */}
+      {showGuidedTour && (
+        <GuidedTour
+          isOpen={showGuidedTour}
+          onClose={() => setShowGuidedTour(false)}
         />
       )}
     </section>
