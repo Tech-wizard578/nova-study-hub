@@ -9,13 +9,20 @@ interface VoiceAssistantContextType {
         startTime: number | null
         duration: number // in minutes
     }
+    musicType: 'intense' | 'adhd' | null
+    isPlayingMusic: boolean
+    musicVolume: number
     speak: (text: string) => void
     stopSpeaking: () => void
     startListening: () => void
     stopListening: () => void
-    startFocusMode: (duration: number) => void
+    startFocusMode: (duration: number, withMusic?: boolean) => void
     endFocusMode: () => void
     toggleEnabled: () => void
+    setMusicType: (type: 'intense' | 'adhd' | null) => void
+    setMusicVolume: (volume: number) => void
+    playBinauralBeats: () => void
+    stopBinauralBeats: () => void
 }
 
 const VoiceAssistantContext = createContext<VoiceAssistantContextType | undefined>(undefined)
@@ -31,6 +38,12 @@ export const VoiceAssistantProvider: React.FC<{ children: React.ReactNode }> = (
     })
     const [voicesLoaded, setVoicesLoaded] = useState(false)
 
+    // Music state
+    const [musicType, setMusicTypeState] = useState<'intense' | 'adhd' | null>(null)
+    const [isPlayingMusic, setIsPlayingMusic] = useState(false)
+    const [musicVolume, setMusicVolumeState] = useState(0.7)
+    const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
+
     // Speech synthesis instance
     const synth = typeof window !== 'undefined' ? window.speechSynthesis : null
 
@@ -41,24 +54,40 @@ export const VoiceAssistantProvider: React.FC<{ children: React.ReactNode }> = (
         const utterance = new SpeechSynthesisUtterance(text)
 
         // Configure voice settings
-        utterance.rate = 0.9
+        utterance.rate = 0.85  // Slightly slower for better clarity
         utterance.pitch = 1.0
         utterance.volume = 1.0
 
-        // Try to use a pleasant voice
-        const preferredVoice = voices.find(voice =>
-            voice.name.includes('Google') ||
-            voice.name.includes('Female') ||
-            voice.name.includes('Samantha') ||
-            voice.lang.startsWith('en')
-        )
+        // Prioritize Indian English voices
+        const preferredVoice =
+            // First priority: Indian English voices
+            voices.find(voice => voice.lang === 'en-IN') ||
+            voices.find(voice => voice.name.includes('India')) ||
+            voices.find(voice => voice.name.includes('Rishi')) ||
+            voices.find(voice => voice.name.includes('Neel')) ||
+
+            // Second priority: British English (closer to Indian pronunciation)
+            voices.find(voice => voice.lang === 'en-GB') ||
+            voices.find(voice => voice.name.includes('British')) ||
+            voices.find(voice => voice.name.includes('UK')) ||
+
+            // Third priority: Google voices (generally good quality)
+            voices.find(voice => voice.name.includes('Google')) ||
+
+            // Fourth priority: Any English voice
+            voices.find(voice => voice.lang.startsWith('en')) ||
+
+            // Fallback: First available voice
+            voices[0]
 
         if (preferredVoice) {
             utterance.voice = preferredVoice
-            console.log('Using voice:', preferredVoice.name)
+            utterance.lang = preferredVoice.lang
+            console.log('🎤 Using voice:', preferredVoice.name, '(', preferredVoice.lang, ')')
         } else if (voices.length > 0) {
             utterance.voice = voices[0]
-            console.log('Using default voice:', voices[0].name)
+            utterance.lang = 'en-IN'  // Force Indian English even if voice doesn't support it
+            console.log('🎤 Using default voice:', voices[0].name, 'with en-IN lang')
         }
 
         utterance.onstart = () => {
@@ -129,14 +158,23 @@ export const VoiceAssistantProvider: React.FC<{ children: React.ReactNode }> = (
         setIsListening(false)
     }, [])
 
-    const startFocusMode = useCallback((duration: number) => {
+    const startFocusMode = useCallback((duration: number, withMusic: boolean = false) => {
         setFocusMode({
             isActive: true,
             startTime: Date.now(),
             duration
         })
-        speak(`Starting focus mode for ${duration} minutes. Let's concentrate on your studies!`)
-    }, [speak])
+
+        if (withMusic && musicType) {
+            speak(`Starting focus mode for ${duration} minutes. Playing binaural beats.`)
+            // Wait for speech to finish, then start music
+            setTimeout(() => {
+                playBinauralBeats()
+            }, 3000)
+        } else {
+            speak(`Starting focus mode for ${duration} minutes. Let's concentrate on your studies!`)
+        }
+    }, [speak, musicType])
 
     const endFocusMode = useCallback(() => {
         const wasActive = focusMode.isActive
@@ -145,10 +183,16 @@ export const VoiceAssistantProvider: React.FC<{ children: React.ReactNode }> = (
             startTime: null,
             duration: 25
         })
+
+        // Stop music if playing
+        if (isPlayingMusic) {
+            stopBinauralBeats()
+        }
+
         if (wasActive) {
             speak("Great job! You've completed your focus session. Time for a well-deserved break!")
         }
-    }, [focusMode.isActive, speak])
+    }, [focusMode.isActive, isPlayingMusic, speak])
 
     const toggleEnabled = useCallback(() => {
         setIsEnabled(prev => !prev)
@@ -156,6 +200,75 @@ export const VoiceAssistantProvider: React.FC<{ children: React.ReactNode }> = (
             stopSpeaking()
         }
     }, [isEnabled, stopSpeaking])
+
+    // Music functions
+    const setMusicType = useCallback((type: 'intense' | 'adhd' | null) => {
+        setMusicTypeState(type)
+    }, [])
+
+    const setMusicVolume = useCallback((volume: number) => {
+        setMusicVolumeState(volume)
+        if (audioElement) {
+            audioElement.volume = volume
+        }
+    }, [audioElement])
+
+    const playBinauralBeats = useCallback(() => {
+        if (!musicType) {
+            console.warn('No music type selected')
+            return
+        }
+
+        // Stop any existing audio
+        if (audioElement) {
+            audioElement.pause()
+            audioElement.currentTime = 0
+        }
+
+        // Create new audio element
+        const musicFile = musicType === 'intense' ? '/audio/intense-study.mp3' : '/audio/adhd-relief.mp3'
+        const audio = new Audio(musicFile)
+        audio.loop = true
+        audio.volume = musicVolume
+
+        audio.onplay = () => {
+            console.log('🎵 Music started:', musicType)
+            setIsPlayingMusic(true)
+        }
+
+        audio.onerror = (e) => {
+            console.error('❌ Music error:', e)
+            console.error('Make sure the music file exists at:', musicFile)
+            setIsPlayingMusic(false)
+        }
+
+        audio.onended = () => {
+            console.log('🎵 Music ended')
+            setIsPlayingMusic(false)
+        }
+
+        setAudioElement(audio)
+        audio.play().catch(err => {
+            console.error('Failed to play audio:', err)
+        })
+    }, [musicType, musicVolume, audioElement])
+
+    const stopBinauralBeats = useCallback(() => {
+        if (!audioElement) return
+
+        // Fade out effect
+        const fadeOut = setInterval(() => {
+            if (audioElement.volume > 0.1) {
+                audioElement.volume = Math.max(0, audioElement.volume - 0.1)
+            } else {
+                audioElement.pause()
+                audioElement.currentTime = 0
+                setIsPlayingMusic(false)
+                setAudioElement(null)
+                clearInterval(fadeOut)
+            }
+        }, 100)
+    }, [audioElement])
 
     // Load voices when they become available
     useEffect(() => {
@@ -183,13 +296,20 @@ export const VoiceAssistantProvider: React.FC<{ children: React.ReactNode }> = (
         isSpeaking,
         isListening,
         focusMode,
+        musicType,
+        isPlayingMusic,
+        musicVolume,
         speak,
         stopSpeaking,
         startListening,
         stopListening,
         startFocusMode,
         endFocusMode,
-        toggleEnabled
+        toggleEnabled,
+        setMusicType,
+        setMusicVolume,
+        playBinauralBeats,
+        stopBinauralBeats
     }
 
     return (

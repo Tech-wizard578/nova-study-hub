@@ -16,7 +16,9 @@ import {
     Settings,
     Play,
     Pause,
-    Coffee
+    Coffee,
+    Square,
+    Headphones
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -28,12 +30,17 @@ const VoiceAssistant = () => {
         isSpeaking,
         isListening,
         focusMode,
+        musicType,
+        isPlayingMusic,
+        musicVolume,
         speak,
         stopSpeaking,
         startListening,
         startFocusMode,
         endFocusMode,
-        toggleEnabled
+        toggleEnabled,
+        setMusicType,
+        setMusicVolume
     } = useVoiceAssistant()
 
     const [isExpanded, setIsExpanded] = useState(false)
@@ -42,6 +49,9 @@ const VoiceAssistant = () => {
     const [focusDuration, setFocusDuration] = useState(25)
     const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
     const [hasGreeted, setHasGreeted] = useState(false)
+    const [motivationAudio, setMotivationAudio] = useState<HTMLAudioElement | null>(null)
+    const [isPlayingMotivation, setIsPlayingMotivation] = useState(false)
+    const [showHeadphoneNotice, setShowHeadphoneNotice] = useState(false)
 
     // Get time-based greeting
     const getTimeBasedGreeting = useCallback(() => {
@@ -199,6 +209,16 @@ const VoiceAssistant = () => {
         return () => clearInterval(interval)
     }, [focusMode, endFocusMode])
 
+    // Cleanup motivation audio on unmount
+    useEffect(() => {
+        return () => {
+            if (motivationAudio) {
+                motivationAudio.pause()
+                motivationAudio.currentTime = 0
+            }
+        }
+    }, [motivationAudio])
+
     // Save nickname to localStorage and/or database
     const saveNickname = async () => {
         if (!nickname.trim()) return
@@ -250,9 +270,73 @@ const VoiceAssistant = () => {
     ]
 
     const getMotivation = () => {
-        const message = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)]
-        speak(message)
+        // Stop any currently playing motivation audio
+        if (motivationAudio) {
+            motivationAudio.pause()
+            motivationAudio.currentTime = 0
+        }
+
+        // Randomly select one of the two audio files
+        const audioFiles = ['/audio/motivation-1.mp3', '/audio/motivation-2.mp3']
+        const randomIndex = Math.floor(Math.random() * audioFiles.length)
+        const selectedAudio = audioFiles[randomIndex]
+
+        // Create new audio instance
+        const audio = new Audio(selectedAudio)
+
+        // Set up event handlers
+        audio.onplay = () => {
+            setIsPlayingMotivation(true)
+        }
+
+        audio.onended = () => {
+            setIsPlayingMotivation(false)
+            setMotivationAudio(null)
+        }
+
+        audio.onerror = (e) => {
+            console.error('Error playing motivation audio:', e)
+            toast.error('Failed to play motivation audio. Please make sure the audio files are uploaded.')
+            setIsPlayingMotivation(false)
+            setMotivationAudio(null)
+        }
+
+        // Store audio instance and play
+        setMotivationAudio(audio)
+        audio.play().catch(err => {
+            console.error('Error playing audio:', err)
+            toast.error('Failed to play motivation audio')
+            setIsPlayingMotivation(false)
+        })
     }
+
+    // Stop motivation audio
+    const stopMotivation = () => {
+        if (motivationAudio) {
+            motivationAudio.pause()
+            motivationAudio.currentTime = 0
+            setIsPlayingMotivation(false)
+            setMotivationAudio(null)
+        }
+    }
+
+    // Handle start focus mode with auto-selection and headphone notice
+    const handleStartFocusMode = () => {
+        // Automatically select intense study binaural beats
+        setMusicType('intense')
+
+        // Show creative headphone notification
+        setShowHeadphoneNotice(true)
+
+        // Start focus mode with music enabled
+        startFocusMode(focusDuration, true)
+
+        // Hide notification after 5 seconds
+        setTimeout(() => {
+            setShowHeadphoneNotice(false)
+        }, 5000)
+    }
+
 
     // Manual greeting function
     const playGreeting = () => {
@@ -338,6 +422,26 @@ const VoiceAssistant = () => {
                                 )}
                             </div>
 
+                            {/* Creative Headphone Notice */}
+                            {showHeadphoneNotice && (
+                                <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-blue-500/20 border-2 border-purple-500/50 p-4 animate-scale-in">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-blue-500/10 animate-pulse" />
+                                    <div className="relative flex items-center gap-3">
+                                        <div className="flex-shrink-0">
+                                            <Headphones className="w-8 h-8 text-purple-400 animate-bounce" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-semibold text-purple-100 mb-1">
+                                                🎧 Pro Tip for Maximum Focus!
+                                            </p>
+                                            <p className="text-xs text-purple-200/80">
+                                                Use headphones for an immersive binaural beats experience
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Focus Mode */}
                             <div className="space-y-3 p-4 rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20">
                                 <div className="flex items-center justify-between">
@@ -353,7 +457,7 @@ const VoiceAssistant = () => {
                                 </div>
 
                                 {!focusMode.isActive ? (
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                         <div className="flex items-center gap-2">
                                             <Input
                                                 type="number"
@@ -365,8 +469,48 @@ const VoiceAssistant = () => {
                                             />
                                             <span className="text-sm text-muted-foreground">minutes</span>
                                         </div>
+
+                                        {/* Music Type Selector */}
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium">Binaural Beats</Label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <Button
+                                                    variant={musicType === 'intense' ? 'default' : 'outline'}
+                                                    size="sm"
+                                                    onClick={() => setMusicType('intense')}
+                                                    className="w-full"
+                                                >
+                                                    🔥 Intense Study
+                                                </Button>
+                                                <Button
+                                                    variant={musicType === 'adhd' ? 'default' : 'outline'}
+                                                    size="sm"
+                                                    onClick={() => setMusicType('adhd')}
+                                                    className="w-full"
+                                                >
+                                                    🧘 ADHD Relief
+                                                </Button>
+                                            </div>
+                                            {musicType && (
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <Label className="text-xs text-muted-foreground">Volume</Label>
+                                                        <span className="text-xs text-muted-foreground">{Math.round(musicVolume * 100)}%</span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="100"
+                                                        value={musicVolume * 100}
+                                                        onChange={(e) => setMusicVolume(Number(e.target.value) / 100)}
+                                                        className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+
                                         <Button
-                                            onClick={() => startFocusMode(focusDuration)}
+                                            onClick={handleStartFocusMode}
                                             className="w-full btn-glow"
                                             variant="glow"
                                         >
@@ -387,29 +531,30 @@ const VoiceAssistant = () => {
                             </div>
 
                             {/* Quick Actions */}
-                            <div className="grid grid-cols-2 gap-2">
-                                <Button
-                                    onClick={playGreeting}
-                                    variant="outline"
-                                    className="w-full"
-                                    disabled={isSpeaking}
-                                >
-                                    <Sparkles className="w-4 h-4 mr-2" />
-                                    Greet Me
-                                </Button>
-                                <Button
-                                    onClick={getMotivation}
-                                    variant="outline"
-                                    className="w-full"
-                                    disabled={isSpeaking}
-                                >
-                                    <Sparkles className="w-4 h-4 mr-2" />
-                                    Motivate Me
-                                </Button>
+                            <div className="space-y-2">
+                                {isPlayingMotivation ? (
+                                    <Button
+                                        onClick={stopMotivation}
+                                        variant="destructive"
+                                        className="w-full"
+                                    >
+                                        <Square className="w-4 h-4 mr-2" />
+                                        Stop Audio
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        onClick={getMotivation}
+                                        variant="outline"
+                                        className="w-full"
+                                    >
+                                        <Sparkles className="w-4 h-4 mr-2" />
+                                        Motivate Me
+                                    </Button>
+                                )}
                                 <Button
                                     onClick={() => speak("Remember to take breaks! A 5-minute break every hour keeps your mind fresh.")}
                                     variant="outline"
-                                    className="w-full col-span-2"
+                                    className="w-full"
                                     disabled={isSpeaking}
                                 >
                                     <Coffee className="w-4 h-4 mr-2" />

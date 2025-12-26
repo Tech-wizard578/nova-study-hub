@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Checker - Vignanits</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .voice-list {
+            margin-top: 20px;
+        }
+
+        .voice-item {
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .voice-item:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .voice-item.indian {
+            border-color: #4CAF50;
+            background: #f1f8f4;
+        }
+
+        .voice-item.british {
+            border-color: #2196F3;
+            background: #f1f7fc;
+        }
+
+        .voice-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .voice-lang {
+            color: #667eea;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .badge.indian {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .badge.british {
+            background: #2196F3;
+            color: white;
+        }
+
+        .badge.google {
+            background: #FF9800;
+            color: white;
+        }
+
+        .test-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 8px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎤 Voice Assistant Checker</h1>
+        <p class="subtitle">Check available voices on your system</p>
+
+        <div class="stats" id="stats"></div>
+
+        <button onclick="loadVoices()">🔄 Refresh Voices</button>
+        <button onclick="testAllIndianVoices()">🇮🇳 Test All Indian Voices</button>
+
+        <div class="test-section">
+            <h3>Test Custom Text</h3>
+            <input type="text" id="testText" placeholder="Enter text to test (e.g., Hello Rahul, welcome to Vignanits!)"
+                value="Hello Rahul, welcome to Vignanits!">
+            <button onclick="testCurrentText()">🔊 Speak</button>
+        </div>
+
+        <div class="voice-list" id="voiceList"></div>
+    </div>
+
+    <script>
+        let voices = [];
+        let currentVoice = null;
+
+        function loadVoices() {
+            voices = speechSynthesis.getVoices();
+            console.log('Loaded voices:', voices);
+            displayVoices();
+            displayStats();
+        }
+
+        function displayStats() {
+            const indianVoices = voices.filter(v => v.lang === 'en-IN' || v.name.includes('India'));
+            const britishVoices = voices.filter(v => v.lang === 'en-GB');
+            const googleVoices = voices.filter(v => v.name.includes('Google'));
+
+            const statsHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${voices.length}</div>
+                    <div class="stat-label">Total Voices</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${indianVoices.length}</div>
+                    <div class="stat-label">Indian English</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${britishVoices.length}</div>
+                    <div class="stat-label">British English</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${googleVoices.length}</div>
+                    <div class="stat-label">Google Voices</div>
+                </div>
+            `;
+            document.getElementById('stats').innerHTML = statsHTML;
+        }
+
+        function displayVoices() {
+            const voiceList = document.getElementById('voiceList');
+            voiceList.innerHTML = '<h3>Available Voices (Click to test)</h3>';
+
+            voices.forEach((voice, index) => {
+                const isIndian = voice.lang === 'en-IN' || voice.name.includes('India');
+                const isBritish = voice.lang === 'en-GB';
+                const isGoogle = voice.name.includes('Google');
+
+                const badges = [];
+                if (isIndian) badges.push('<span class="badge indian">🇮🇳 Indian</span>');
+                if (isBritish) badges.push('<span class="badge british">🇬🇧 British</span>');
+                if (isGoogle) badges.push('<span class="badge google">Google</span>');
+
+                const voiceClass = isIndian ? 'indian' : (isBritish ? 'british' : '');
+
+                const voiceHTML = `
+                    <div class="voice-item ${voiceClass}" onclick="testVoice(${index})">
+                        <div class="voice-name">${voice.name} ${badges.join(' ')}</div>
+                        <div class="voice-lang">Language: ${voice.lang} ${voice.default ? '(Default)' : ''}</div>
+                    </div>
+                `;
+                voiceList.innerHTML += voiceHTML;
+            });
+        }
+
+        function testVoice(index) {
+            const voice = voices[index];
+            const text = document.getElementById('testText').value || 'Hello, this is a test of the voice assistant.';
+            speak(text, voice);
+        }
+
+        function testCurrentText() {
+            const text = document.getElementById('testText').value;
+            if (!text) {
+                alert('Please enter some text to test');
+                return;
+            }
+
+            // Use the same priority as the app
+            const preferredVoice =
+                voices.find(v => v.lang === 'en-IN') ||
+                voices.find(v => v.name.includes('India')) ||
+                voices.find(v => v.lang === 'en-GB') ||
+                voices.find(v => v.name.includes('Google')) ||
+                voices[0];
+
+            if (preferredVoice) {
+                speak(text, preferredVoice);
+                console.log('Using voice:', preferredVoice.name, preferredVoice.lang);
+            }
+        }
+
+        function testAllIndianVoices() {
+            const indianVoices = voices.filter(v => v.lang === 'en-IN' || v.name.includes('India'));
+
+            if (indianVoices.length === 0) {
+                alert('No Indian English voices found on your system!\\n\\nPlease install Indian English voices:\\n1. Windows: Settings → Time & Language → Speech\\n2. Chrome: Should have Google voices automatically');
+                return;
+            }
+
+            const text = document.getElementById('testText').value || 'Hello, welcome to Vignanits!';
+            let index = 0;
+
+            function speakNext() {
+                if (index < indianVoices.length) {
+                    console.log('Testing:', indianVoices[index].name);
+                    alert(`Testing: ${indianVoices[index].name}`);
+                    speak(text, indianVoices[index], () => {
+                        index++;
+                        setTimeout(speakNext, 500);
+                    });
+                }
+            }
+
+            speakNext();
+        }
+
+        function speak(text, voice, callback) {
+            speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.voice = voice;
+            utterance.lang = voice.lang;
+            utterance.rate = 0.85;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+
+            utterance.onend = () => {
+                console.log('Speech ended');
+                if (callback) callback();
+            };
+
+            utterance.onerror = (e) => {
+                console.error('Speech error:', e);
+            };
+
+            speechSynthesis.speak(utterance);
+        }
+
+        // Load voices when page loads
+        window.addEventListener('load', () => {
+            loadVoices();
+
+            // Chrome loads voices asynchronously
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        });
+    </script>
+</body>
+
+</html>

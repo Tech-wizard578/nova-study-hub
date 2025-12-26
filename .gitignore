@@ -36,3 +36,11 @@ verify_profile.ts
 
 # Supabase local dev (optional)
 .supabase/
+
+# Audio files (too large for GitHub, store locally)
+public/audio/*.mp3
+public/audio/*.wav
+public/audio/*.ogg
+public/audio/*.m4a
+# Keep the README
+!public/audio/README.md
