@@ -2,15 +2,18 @@ import { useState } from 'react';
 import { X, Sparkles, FileText, Zap, Brain, Send, Loader2, CheckCircle2, Copy, Download, Code, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { questionBank } from '@/data/questionBank';
+import { callOpenRouterWithRotation } from '@/utils/apiKeyRotation';
 
 interface TryItLiveProps {
     isOpen: boolean;
     onClose: () => void;
+    defaultTab?: 'summarize' | 'quiz' | 'voice' | 'code';
 }
 
-const TryItLive = ({ isOpen, onClose }: TryItLiveProps) => {
+const TryItLive = ({ isOpen, onClose, defaultTab = 'code' }: TryItLiveProps) => {
     const [isClosing, setIsClosing] = useState(false);
-    const [activeTab, setActiveTab] = useState<'summarize' | 'quiz' | 'voice' | 'code'>('code');
+    const [activeTab, setActiveTab] = useState<'summarize' | 'quiz' | 'voice' | 'code'>(defaultTab);
     const [inputText, setInputText] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [result, setResult] = useState<string>('');
@@ -151,7 +154,7 @@ int main() {
         }, 300);
     };
 
-    const handleSummarize = () => {
+    const handleSummarize = async () => {
         if (!inputText.trim()) {
             toast.error('Please enter some text to summarize');
             return;
@@ -160,13 +163,63 @@ int main() {
         setIsProcessing(true);
         setResult('');
 
-        // Simulate AI processing
-        setTimeout(() => {
-            const summary = `AI is revolutionizing education through personalized learning, intelligent tutoring systems, and automated grading. It analyzes student performance to adapt content and provide real-time feedback, making education more accessible and efficient for individual learners.`;
-            setResult(summary);
+        try {
+            const apiKeysString = import.meta.env.VITE_OPENROUTER_API_KEY;
+
+            if (!apiKeysString) {
+                // Fallback to a simple extractive summary if no API key
+                const sentences = inputText.split(/[.!?]+/).filter(s => s.trim().length > 0);
+                const summary = sentences.length > 3
+                    ? sentences.slice(0, 3).join('. ') + '.'
+                    : inputText;
+                setResult(summary);
+                setIsProcessing(false);
+                toast.success('Summary generated!');
+                return;
+            }
+
+            // Call OpenRouter API with automatic key rotation
+            const result = await callOpenRouterWithRotation(
+                apiKeysString,
+                'google/gemini-2.0-flash-exp:free',
+                [{
+                    role: 'user',
+                    content: `Please provide a concise summary of the following text in 2-3 sentences. Focus on the main points and key information:\n\n${inputText}`
+                }],
+                {
+                    temperature: 0.7,
+                    max_tokens: 200
+                }
+            );
+
+            if (result.success && result.data) {
+                const summary = result.data.choices?.[0]?.message?.content?.trim();
+
+                if (summary && summary !== 'undefined') {
+                    setResult(summary);
+                    toast.success('Summary generated!');
+                } else {
+                    throw new Error('No summary generated');
+                }
+            } else {
+                throw result.error || new Error('Failed to generate summary');
+            }
+        } catch (error: any) {
+            console.error('Summarization error:', error);
+
+            // Check if it's a rate limit error (429 status code)
+            if (error?.status === 429 || error?.message?.includes('429') || error?.message?.toLowerCase().includes('rate limit')) {
+                toast.error('All API keys rate limited. Please wait a moment.', {
+                    description: 'All available API keys have hit their rate limits.'
+                });
+                setResult('⚠️ All API keys are rate limited. Please wait 1-2 minutes before trying again.');
+            } else {
+                toast.error('Failed to generate summary. Please try again.');
+                setResult('');
+            }
+        } finally {
             setIsProcessing(false);
-            toast.success('Summary generated!');
-        }, 2000);
+        }
     };
 
     const handleGenerateQuiz = () => {
@@ -174,18 +227,23 @@ int main() {
         setQuizQuestion(null);
         setSelectedAnswer(null);
 
-        // Simulate quiz generation
+        // Simulate processing delay
         setTimeout(() => {
+            const randomIndex = Math.floor(Math.random() * questionBank.length);
+            const randomQuestion = questionBank[randomIndex];
+
+            // Find the index of the correct answer
+            const correctIndex = randomQuestion.options.findIndex(
+                option => option === randomQuestion.correct_answer
+            );
+
             const quiz = {
-                question: 'What is the primary benefit of AI in education according to the text?',
-                options: [
-                    'Reducing teacher workload',
-                    'Providing personalized learning experiences',
-                    'Replacing traditional classrooms',
-                    'Increasing test scores'
-                ],
-                correctAnswer: 1,
-                explanation: 'The text emphasizes that AI transforms education by providing personalized learning experiences tailored to individual students.'
+                question: randomQuestion.question,
+                options: randomQuestion.options,
+                correctAnswer: correctIndex !== -1 ? correctIndex : 0,
+                explanation: randomQuestion.explanation,
+                subject: randomQuestion.subject,
+                difficulty: randomQuestion.difficulty
             };
             setQuizQuestion(quiz);
             setIsProcessing(false);
@@ -481,6 +539,19 @@ int main() {
                                 ) : (
                                     <div className="w-full max-w-2xl">
                                         <div className="glass-card p-6 rounded-xl mb-6">
+                                            <div className="flex gap-2 mb-4">
+                                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                                    {quizQuestion.subject}
+                                                </span>
+                                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${quizQuestion.difficulty === 'easy'
+                                                    ? 'bg-green-500/20 text-green-300 border-green-500/30'
+                                                    : quizQuestion.difficulty === 'medium'
+                                                        ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
+                                                        : 'bg-red-500/20 text-red-300 border-red-500/30'
+                                                    }`}>
+                                                    {quizQuestion.difficulty.charAt(0).toUpperCase() + quizQuestion.difficulty.slice(1)}
+                                                </span>
+                                            </div>
                                             <h4 className="text-lg font-semibold mb-4">{quizQuestion.question}</h4>
                                             <div className="space-y-3">
                                                 {quizQuestion.options.map((option: string, index: number) => (

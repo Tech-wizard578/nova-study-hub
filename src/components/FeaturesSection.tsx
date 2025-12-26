@@ -35,8 +35,8 @@ const features = [
   },
   {
     icon: Puzzle,
-    title: 'Daily Puzzles',
-    description: 'Challenge yourself with brain teasers and puzzles designed to enhance critical thinking.',
+    title: 'Aptitude Quiz',
+    description: 'Challenge yourself with our extensive question bank covering various aptitude topics.',
     color: 'from-primary via-accent to-secondary',
     bgGlow: 'bg-primary/20',
   },
@@ -58,7 +58,7 @@ const features = [
 
 const FeaturesSection = () => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [showTryItLive, setShowTryItLive] = useState(false);
+  const [activeFeature, setActiveFeature] = useState<string | null>(null);
 
   return (
     <section id="features" className="relative py-24 px-4">
@@ -122,8 +122,8 @@ const FeaturesSection = () => {
                   className={`group/btn p-0 h-auto font-semibold transition-all duration-300 ${hoveredIndex === index ? 'text-primary' : 'text-muted-foreground'
                     }`}
                   onClick={() => {
-                    if (feature.title === 'Code Compiler') {
-                      setShowTryItLive(true);
+                    if (feature.title === 'Code Compiler' || feature.title === 'Aptitude Quiz' || feature.title === 'AI Summarizer') {
+                      setActiveFeature(feature.title);
                     }
                   }}
                 >
@@ -137,10 +137,15 @@ const FeaturesSection = () => {
       </div>
 
       {/* Try It Live Modal */}
-      {showTryItLive && (
+      {activeFeature && (
         <TryItLive
-          isOpen={showTryItLive}
-          onClose={() => setShowTryItLive(false)}
+          isOpen={!!activeFeature}
+          onClose={() => setActiveFeature(null)}
+          defaultTab={
+            activeFeature === 'Aptitude Quiz' ? 'quiz' :
+              activeFeature === 'AI Summarizer' ? 'summarize' :
+                'code'
+          }
         />
       )}
     </section>

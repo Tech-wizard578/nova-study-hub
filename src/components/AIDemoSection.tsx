@@ -67,20 +67,33 @@ const AIDemoSection = () => {
         summaryText = await summarizeText(inputText);
       }
 
+      // Ensure summaryText is valid before animating
+      if (!summaryText || summaryText === 'undefined') {
+        throw new Error('Invalid summary response');
+      }
+
       // Animate the streaming effect
       let currentIndex = 0;
       const interval = setInterval(() => {
         if (currentIndex < summaryText.length) {
-          setSummary(prev => prev + summaryText[currentIndex]);
+          setSummary(summaryText.substring(0, currentIndex + 1));
           currentIndex++;
         } else {
           clearInterval(interval);
           setIsProcessing(false);
         }
       }, 20);
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI Error:', error);
-      toast.error('Failed to generate summary. Please try again.');
+
+      // Check if it's a rate limit error
+      if (error?.status === 429 || error?.message?.includes('429')) {
+        toast.error('Rate limit reached. Please wait a moment and try again.');
+        setSummary('⚠️ Rate limit reached. The free tier has limited requests. Please try again in a few moments.');
+      } else {
+        toast.error('Failed to generate summary. Please try again.');
+        setSummary('');
+      }
       setIsProcessing(false);
     }
   };

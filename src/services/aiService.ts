@@ -1,63 +1,143 @@
+import OpenAI from 'openai';
+import { extractTextFromPDF, isPDF } from '@/utils/pdfExtractor';
+import { callOpenRouterWithRotation } from '@/utils/apiKeyRotation';
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// For functions that don't use rotation yet, use the first API key
+const apiKeysString = import.meta.env.VITE_OPENROUTER_API_KEY || "";
+const firstApiKey = apiKeysString.split(',')[0]?.trim() || "";
 
-const apiKey = import.meta.env.VITE_GOOGLE_AI_API_KEY;
+// Configure OpenAI client for OpenRouter (used by image/quiz functions)
+const openai = new OpenAI({
+    apiKey: firstApiKey,
+    baseURL: "https://openrouter.ai/api/v1",
+    dangerouslyAllowBrowser: true,
+    defaultHeaders: {
+        "HTTP-Referer": window.location.origin,
+        "X-Title": "Nova Study Hub",
+    }
+});
 
-if (!apiKey) {
-    console.warn("Missing Google AI API Key! Check your .env.local file.");
-}
-
-const genAI = new GoogleGenerativeAI(apiKey || "");
-// Using gemini-1.5-flash for speed and efficiency
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+// Default model - using Gemini Flash via OpenRouter for cost-effectiveness and multimodal support
+const DEFAULT_MODEL = "google/gemini-2.0-flash-exp:free";
 
 export async function summarizeText(text: string): Promise<string> {
     try {
-        const prompt = `Summarize the following text in 3-4 concise sentences. Focus on the key points:\n\n${text}`;
-        const result = await model.generateContent(prompt);
-        return result.response.text();
-    } catch (error) {
+        const apiKeysString = import.meta.env.VITE_OPENROUTER_API_KEY;
+
+        if (!apiKeysString) {
+            throw new Error("No API key configured");
+        }
+
+        // Use API key rotation for better reliability
+        const result = await callOpenRouterWithRotation(
+            apiKeysString,
+            DEFAULT_MODEL,
+            [
+                {
+                    role: "system",
+                    content: "You are a helpful assistant that summarizes text concisely. Always provide a clear, complete summary without any disclaimers or refusals."
+                },
+                {
+                    role: "user",
+                    content: `Summarize the following text in 3-4 concise sentences. Focus on the key points:\n\n${text}`
+                }
+            ],
+            {
+                temperature: 0.7
+            }
+        );
+
+        if (result.success && result.data) {
+            const summary = result.data.choices[0]?.message?.content?.trim();
+
+            if (!summary) {
+                throw new Error("Empty response from AI");
+            }
+
+            return summary;
+        } else {
+            throw result.error || new Error("Failed to generate summary");
+        }
+    } catch (error: any) {
         console.error("Error summarizing text:", error);
-        throw error;
+
+        // Provide specific error messages
+        if (error?.status === 429) {
+            throw new Error("All API keys rate limited. Please try again in a moment.");
+        } else if (error?.status === 401) {
+            throw new Error("API authentication failed. Please check your API key.");
+        } else if (error?.message) {
+            throw error;
+        } else {
+            throw new Error("Failed to generate summary. Please try again.");
+        }
     }
 }
 
 export async function summarizeFile(file: File): Promise<string> {
     try {
-        // Convert file to base64 for inline data
-        const fileData = await fileToGenerativePart(file);
+        // Handle PDF files
+        if (isPDF(file)) {
+            console.log('Extracting text from PDF...');
+            const pdfText = await extractTextFromPDF(file);
 
-        // Generate summary using the file data
-        const prompt = file.type.startsWith('audio/')
-            ? "Please transcribe this audio file and provide a concise summary of the main points discussed in 3-4 sentences."
-            : "Please analyze this document and provide a concise summary of the main points in 3-4 sentences.";
+            if (!pdfText || pdfText.trim().length === 0) {
+                throw new Error('No text could be extracted from the PDF. The file may be image-based or empty.');
+            }
 
-        const result = await model.generateContent([
-            fileData,
-            { text: prompt }
-        ]);
+            console.log(`Extracted ${pdfText.length} characters from PDF`);
+            return summarizeText(pdfText);
+        }
 
-        return result.response.text();
+        // Handle image files
+        if (file.type.startsWith('image/')) {
+            // Convert image to base64
+            const base64Image = await fileToBase64(file);
+
+            const response = await openai.chat.completions.create({
+                model: "google/gemini-flash-1.5", // Use vision-capable model
+                messages: [
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "text",
+                                text: "Please analyze this image and provide a concise summary of what it contains in 3-4 sentences."
+                            },
+                            {
+                                type: "image_url",
+                                image_url: {
+                                    url: base64Image
+                                }
+                            }
+                        ]
+                    }
+                ],
+            });
+
+            return response.choices[0]?.message?.content || "Unable to analyze image.";
+        }
+
+        // Handle text files
+        if (file.type === 'text/plain' || file.type === 'application/json') {
+            const text = await file.text();
+            return summarizeText(text);
+        }
+
+        // Unsupported file type
+        throw new Error(`Unsupported file type: ${file.type}. Supported formats: PDF, images (JPG, PNG), and text files.`);
     } catch (error) {
         console.error("Error summarizing file:", error);
         throw error;
     }
 }
 
-// Helper function to convert File to GenerativePart
-async function fileToGenerativePart(file: File): Promise<{ inlineData: { data: string; mimeType: string } }> {
+// Helper function to convert File to base64 data URL
+async function fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => {
-            const base64data = reader.result as string;
-            // Remove the data URL prefix (e.g., "data:application/pdf;base64,")
-            const base64 = base64data.split(',')[1];
-            resolve({
-                inlineData: {
-                    data: base64,
-                    mimeType: file.type
-                }
-            });
+            resolve(reader.result as string);
         };
         reader.onerror = reject;
         reader.readAsDataURL(file);
@@ -70,10 +150,22 @@ export async function chatWithAI(question: string, context?: string): Promise<st
             ? `You are a helpful study assistant for college students. Use this context to answer questions: ${context}`
             : 'You are a helpful study assistant for college students specializing in AIML topics.';
 
-        const prompt = `${systemPrompt}\n\nUser Question: ${question}`;
+        const response = await openai.chat.completions.create({
+            model: DEFAULT_MODEL,
+            messages: [
+                {
+                    role: "system",
+                    content: systemPrompt
+                },
+                {
+                    role: "user",
+                    content: question
+                }
+            ],
+            temperature: 0.7,
+        });
 
-        const result = await model.generateContent(prompt);
-        return result.response.text();
+        return response.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
     } catch (error) {
         console.error("Error chatting with AI:", error);
         throw error;
@@ -101,8 +193,22 @@ export async function generateQuestions(topic: string, difficulty: 'easy' | 'med
       ]
       Do not include markdown formatting like \`\`\`json. Just the raw JSON array.`;
 
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
+        const response = await openai.chat.completions.create({
+            model: DEFAULT_MODEL,
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a quiz generator. Always respond with valid JSON only, no markdown."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            temperature: 0.8,
+        });
+
+        const text = response.choices[0]?.message?.content || "[]";
 
         // Cleanup potential markdown if the model ignores the instruction
         const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -159,8 +265,22 @@ Requirements:
 - Explanation should be concise (1-2 sentences)
 - Focus on practical, placement-relevant questions`;
 
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
+        const response = await openai.chat.completions.create({
+            model: DEFAULT_MODEL,
+            messages: [
+                {
+                    role: "system",
+                    content: "You are an aptitude question generator. Always respond with valid JSON only, no markdown."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            temperature: 0.8,
+        });
+
+        const text = response.choices[0]?.message?.content || "{}";
 
         // Cleanup potential markdown
         const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
