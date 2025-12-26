@@ -165,14 +165,14 @@ export const VoiceAssistantProvider: React.FC<{ children: React.ReactNode }> = (
             duration
         })
 
+        // Simple announcement
+        speak(`Starting focus mode for ${duration} minutes.`)
+
+        // Start music if selected
         if (withMusic && musicType) {
-            speak(`Starting focus mode for ${duration} minutes. Playing binaural beats.`)
-            // Wait for speech to finish, then start music
             setTimeout(() => {
                 playBinauralBeats()
-            }, 3000)
-        } else {
-            speak(`Starting focus mode for ${duration} minutes. Let's concentrate on your studies!`)
+            }, 2000)
         }
     }, [speak, musicType])
 
@@ -189,8 +189,9 @@ export const VoiceAssistantProvider: React.FC<{ children: React.ReactNode }> = (
             stopBinauralBeats()
         }
 
+        // Simple announcement only if manually ended
         if (wasActive) {
-            speak("Great job! You've completed your focus session. Time for a well-deserved break!")
+            speak("Great job!")
         }
     }, [focusMode.isActive, isPlayingMusic, speak])
 

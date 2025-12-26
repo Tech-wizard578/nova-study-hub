@@ -40,7 +40,9 @@ const VoiceAssistant = () => {
         endFocusMode,
         toggleEnabled,
         setMusicType,
-        setMusicVolume
+        setMusicVolume,
+        stopBinauralBeats,
+        playBinauralBeats
     } = useVoiceAssistant()
 
     const [isExpanded, setIsExpanded] = useState(false)
@@ -53,6 +55,7 @@ const VoiceAssistant = () => {
     const [isPlayingMotivation, setIsPlayingMotivation] = useState(false)
     const [showHeadphoneNotice, setShowHeadphoneNotice] = useState(false)
     const [showBreakReminder, setShowBreakReminder] = useState(false)
+    const [shouldResumeBinauralBeats, setShouldResumeBinauralBeats] = useState(false)
 
     // Get time-based greeting
     const getTimeBasedGreeting = useCallback(() => {
@@ -280,6 +283,16 @@ const VoiceAssistant = () => {
     ]
 
     const getMotivation = () => {
+        // Stop any ongoing voice assistant speech
+        stopSpeaking()
+
+        // Pause binaural beats if playing (will resume after motivation audio)
+        const wasMusicPlaying = isPlayingMusic
+        if (wasMusicPlaying) {
+            stopBinauralBeats()
+            setShouldResumeBinauralBeats(true)
+        }
+
         // Stop any currently playing motivation audio
         if (motivationAudio) {
             motivationAudio.pause()
@@ -302,6 +315,12 @@ const VoiceAssistant = () => {
         audio.onended = () => {
             setIsPlayingMotivation(false)
             setMotivationAudio(null)
+
+            // Resume binaural beats if they were playing before
+            if (shouldResumeBinauralBeats) {
+                playBinauralBeats()
+                setShouldResumeBinauralBeats(false)
+            }
         }
 
         audio.onerror = (e) => {
@@ -309,6 +328,12 @@ const VoiceAssistant = () => {
             toast.error('Failed to play motivation audio. Please make sure the audio files are uploaded.')
             setIsPlayingMotivation(false)
             setMotivationAudio(null)
+
+            // Resume binaural beats on error too
+            if (shouldResumeBinauralBeats) {
+                playBinauralBeats()
+                setShouldResumeBinauralBeats(false)
+            }
         }
 
         // Store audio instance and play
@@ -317,6 +342,12 @@ const VoiceAssistant = () => {
             console.error('Error playing audio:', err)
             toast.error('Failed to play motivation audio')
             setIsPlayingMotivation(false)
+
+            // Resume binaural beats on error
+            if (shouldResumeBinauralBeats) {
+                playBinauralBeats()
+                setShouldResumeBinauralBeats(false)
+            }
         })
     }
 
@@ -327,6 +358,12 @@ const VoiceAssistant = () => {
             motivationAudio.currentTime = 0
             setIsPlayingMotivation(false)
             setMotivationAudio(null)
+
+            // Resume binaural beats if they were paused for motivation
+            if (shouldResumeBinauralBeats) {
+                playBinauralBeats()
+                setShouldResumeBinauralBeats(false)
+            }
         }
     }
 
@@ -336,6 +373,14 @@ const VoiceAssistant = () => {
         if (!musicType) {
             toast.error('Please select a binaural beats type before starting your focus session!')
             return
+        }
+
+        // Stop any playing motivational audio to prevent collision
+        if (motivationAudio) {
+            motivationAudio.pause()
+            motivationAudio.currentTime = 0
+            setIsPlayingMotivation(false)
+            setMotivationAudio(null)
         }
 
         // Show creative headphone notification
