@@ -9,15 +9,22 @@ const AIDemoSection = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [summary, setSummary] = useState('');
   const [copied, setCopied] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const MAX_FILES = 3;
 
   const sampleText = `Photosynthesis is a process used by plants and other organisms to convert light energy into chemical energy that, through cellular respiration, can later be released to fuel the organism's activities. Some of this chemical energy is stored in carbohydrate molecules, such as sugars and starches, which are synthesized from carbon dioxide and water. In most cases, oxygen is also released as a waste product that stores three times more chemical energy than the carbohydrates. Most plants, algae, and cyanobacteria perform photosynthesis; such organisms are called photoautotrophs.`;
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
 
-    // Validate file type
+    // Check if adding these files would exceed the limit
+    if (uploadedFiles.length + files.length > MAX_FILES) {
+      toast.error(`You can only upload up to ${MAX_FILES} files at a time.`);
+      return;
+    }
+
+    // Validate each file
     const validTypes = [
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -29,29 +36,39 @@ const AIDemoSection = () => {
       'audio/flac'
     ];
 
-    if (!validTypes.includes(file.type)) {
-      toast.error('Unsupported file type. Please upload PDF, DOCX, or audio files.');
+    const invalidFiles = files.filter(file => !validTypes.includes(file.type));
+    if (invalidFiles.length > 0) {
+      toast.error('Some files have unsupported types. Please upload PDF, DOCX, or audio files.');
       return;
     }
 
-    // Validate file size (30MB for documents, ~10 minutes for audio)
+    // Validate file sizes (30MB for documents)
     const maxSize = 30 * 1024 * 1024; // 30MB
-    if (file.size > maxSize) {
-      toast.error('File too large. Maximum size is 30MB.');
+    const oversizedFiles = files.filter(file => file.size > maxSize);
+    if (oversizedFiles.length > 0) {
+      toast.error('Some files are too large. Maximum size is 30MB per file.');
       return;
     }
 
-    setUploadedFile(file);
-    setInputText(''); // Clear text input when file is uploaded
-    toast.success(`File "${file.name}" uploaded successfully!`);
+    setUploadedFiles(prev => [...prev, ...files]);
+    setInputText(''); // Clear text input when files are uploaded
+
+    if (files.length === 1) {
+      toast.success(`File "${files[0].name}" uploaded successfully!`);
+    } else {
+      toast.success(`${files.length} files uploaded successfully!`);
+    }
+
+    // Reset the input so the same file can be uploaded again if removed
+    event.target.value = '';
   };
 
-  const handleRemoveFile = () => {
-    setUploadedFile(null);
+  const handleRemoveFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSummarize = async () => {
-    if (!inputText.trim() && !uploadedFile) return;
+    if (!inputText.trim() && uploadedFiles.length === 0) return;
 
     setIsProcessing(true);
     setSummary('');
@@ -59,9 +76,18 @@ const AIDemoSection = () => {
     try {
       let summaryText: string;
 
-      if (uploadedFile) {
-        // Summarize file
-        summaryText = await summarizeFile(uploadedFile);
+      if (uploadedFiles.length > 0) {
+        // Summarize multiple files
+        const summaries = await Promise.all(
+          uploadedFiles.map(async (file, index) => {
+            const fileSummary = await summarizeFile(file);
+            if (uploadedFiles.length > 1) {
+              return `**File ${index + 1}: ${file.name}**\n\n${fileSummary}`;
+            }
+            return fileSummary;
+          })
+        );
+        summaryText = summaries.join('\n\n---\n\n');
       } else {
         // Summarize text
         summaryText = await summarizeText(inputText);
@@ -134,9 +160,9 @@ const AIDemoSection = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-muted-foreground">
-                  {uploadedFile ? 'Uploaded File' : 'Input Text'}
+                  {uploadedFiles.length > 0 ? `Uploaded Files (${uploadedFiles.length}/${MAX_FILES})` : 'Input Text'}
                 </label>
-                {!uploadedFile && (
+                {uploadedFiles.length === 0 && (
                   <button
                     onClick={() => setInputText(sampleText)}
                     className="text-xs text-primary hover:text-primary/80 transition-colors"
@@ -146,31 +172,56 @@ const AIDemoSection = () => {
                 )}
               </div>
 
-              {/* File Preview (shown when file is uploaded) */}
-              {uploadedFile && (
-                <div className="flex items-center gap-3 p-4 bg-background/50 border border-border rounded-xl">
-                  {uploadedFile.type.startsWith('audio/') ? (
-                    <Music className="w-8 h-8 text-primary flex-shrink-0" />
-                  ) : (
-                    <FileText className="w-8 h-8 text-primary flex-shrink-0" />
+              {/* File Previews (shown when files are uploaded) */}
+              {uploadedFiles.length > 0 && (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {uploadedFiles.map((file, index) => (
+                    <div key={index} className="flex items-center gap-3 p-4 bg-background/50 border border-border rounded-xl">
+                      {file.type.startsWith('audio/') ? (
+                        <Music className="w-8 h-8 text-primary flex-shrink-0" />
+                      ) : (
+                        <FileText className="w-8 h-8 text-primary flex-shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveFile(index)}
+                        className="flex-shrink-0 p-1 hover:bg-destructive/10 rounded-full transition-colors"
+                      >
+                        <X className="w-4 h-4 text-destructive" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Upload more files button */}
+                  {uploadedFiles.length < MAX_FILES && (
+                    <label
+                      htmlFor="file-upload-more"
+                      className="flex items-center justify-center gap-2 p-4 bg-background/30 border border-dashed border-border hover:border-primary/50 rounded-xl cursor-pointer transition-colors group"
+                    >
+                      <Upload className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <span className="text-sm text-muted-foreground group-hover:text-primary transition-colors">
+                        Upload more files ({MAX_FILES - uploadedFiles.length} remaining)
+                      </span>
+                      <input
+                        id="file-upload-more"
+                        type="file"
+                        accept=".pdf,.docx,.doc,.mp3,.wav,.m4a,.flac"
+                        onChange={handleFileUpload}
+                        multiple
+                        className="hidden"
+                      />
+                    </label>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{uploadedFile.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleRemoveFile}
-                    className="flex-shrink-0 p-1 hover:bg-destructive/10 rounded-full transition-colors"
-                  >
-                    <X className="w-4 h-4 text-destructive" />
-                  </button>
                 </div>
               )}
 
               {/* Text Input with Upload Icon */}
-              {!uploadedFile && (
+              {uploadedFiles.length === 0 && (
                 <div className="relative">
                   <textarea
                     value={inputText}
@@ -182,17 +233,18 @@ const AIDemoSection = () => {
                     <label
                       htmlFor="file-upload"
                       className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background/80 border border-border hover:border-primary/50 cursor-pointer transition-colors group"
-                      title="Upload PDF, DOCX, or Audio file (max 30MB)"
+                      title={`Upload up to ${MAX_FILES} PDF, DOCX, or Audio files (max 30MB each)`}
                     >
                       <Upload className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                       <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
-                        Upload File
+                        Upload Files
                       </span>
                       <input
                         id="file-upload"
                         type="file"
                         accept=".pdf,.docx,.doc,.mp3,.wav,.m4a,.flac"
                         onChange={handleFileUpload}
+                        multiple
                         className="hidden"
                       />
                     </label>
@@ -204,7 +256,7 @@ const AIDemoSection = () => {
               )}
               <Button
                 onClick={handleSummarize}
-                disabled={(!inputText.trim() && !uploadedFile) || isProcessing}
+                disabled={(!inputText.trim() && uploadedFiles.length === 0) || isProcessing}
                 variant="glow"
                 className="w-full"
               >

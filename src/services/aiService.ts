@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { extractTextFromPDF, isPDF } from '@/utils/pdfExtractor';
 import { callOpenRouterWithRotation } from '@/utils/apiKeyRotation';
+import { callHybridAI, analyzeImageHybrid } from '@/utils/hybridAiProvider';
 
 // For functions that don't use rotation yet, use the first API key
 const apiKeysString = import.meta.env.VITE_OPENROUTER_API_KEY || "";
@@ -18,20 +19,13 @@ const openai = new OpenAI({
 });
 
 // Default model - using Gemini Flash via OpenRouter for cost-effectiveness and multimodal support
-const DEFAULT_MODEL = "google/gemini-2.0-flash-exp:free";
+// Using paid tier for better rate limits (very affordable at $0.075 per 1M tokens)
+const DEFAULT_MODEL = "google/gemini-flash-1.5";
 
 export async function summarizeText(text: string): Promise<string> {
     try {
-        const apiKeysString = import.meta.env.VITE_OPENROUTER_API_KEY;
-
-        if (!apiKeysString) {
-            throw new Error("No API key configured");
-        }
-
-        // Use API key rotation for better reliability
-        const result = await callOpenRouterWithRotation(
-            apiKeysString,
-            DEFAULT_MODEL,
+        // Use hybrid AI provider (Gemini primary, OpenRouter fallback)
+        const result = await callHybridAI(
             [
                 {
                     role: "system",
@@ -43,12 +37,13 @@ export async function summarizeText(text: string): Promise<string> {
                 }
             ],
             {
-                temperature: 0.7
+                temperature: 0.7,
+                maxTokens: 500
             }
         );
 
-        if (result.success && result.data) {
-            const summary = result.data.choices[0]?.message?.content?.trim();
+        if (result.success && result.content) {
+            const summary = result.content.trim();
 
             if (!summary) {
                 throw new Error("Empty response from AI");
@@ -62,10 +57,10 @@ export async function summarizeText(text: string): Promise<string> {
         console.error("Error summarizing text:", error);
 
         // Provide specific error messages
-        if (error?.status === 429) {
-            throw new Error("All API keys rate limited. Please try again in a moment.");
+        if (error?.status === 429 || error?.message?.includes('rate limit')) {
+            throw new Error("All API providers rate limited. Please try again in a moment.");
         } else if (error?.status === 401) {
-            throw new Error("API authentication failed. Please check your API key.");
+            throw new Error("API authentication failed. Please check your API keys.");
         } else if (error?.message) {
             throw error;
         } else {
@@ -94,28 +89,17 @@ export async function summarizeFile(file: File): Promise<string> {
             // Convert image to base64
             const base64Image = await fileToBase64(file);
 
-            const response = await openai.chat.completions.create({
-                model: "google/gemini-flash-1.5", // Use vision-capable model
-                messages: [
-                    {
-                        role: "user",
-                        content: [
-                            {
-                                type: "text",
-                                text: "Please analyze this image and provide a concise summary of what it contains in 3-4 sentences."
-                            },
-                            {
-                                type: "image_url",
-                                image_url: {
-                                    url: base64Image
-                                }
-                            }
-                        ]
-                    }
-                ],
-            });
+            // Use hybrid AI provider for image analysis
+            const result = await analyzeImageHybrid(
+                base64Image,
+                "Please analyze this image and provide a concise summary of what it contains in 3-4 sentences."
+            );
 
-            return response.choices[0]?.message?.content || "Unable to analyze image.";
+            if (result.success && result.content) {
+                return result.content;
+            } else {
+                throw result.error || new Error("Failed to analyze image");
+            }
         }
 
         // Handle text files
@@ -150,9 +134,9 @@ export async function chatWithAI(question: string, context?: string): Promise<st
             ? `You are a helpful study assistant for college students. Use this context to answer questions: ${context}`
             : 'You are a helpful study assistant for college students specializing in AIML topics.';
 
-        const response = await openai.chat.completions.create({
-            model: DEFAULT_MODEL,
-            messages: [
+        // Use hybrid AI provider (Gemini primary, OpenRouter fallback)
+        const result = await callHybridAI(
+            [
                 {
                     role: "system",
                     content: systemPrompt
@@ -162,13 +146,28 @@ export async function chatWithAI(question: string, context?: string): Promise<st
                     content: question
                 }
             ],
-            temperature: 0.7,
-        });
+            {
+                temperature: 0.7,
+                maxTokens: 1024
+            }
+        );
 
-        return response.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
-    } catch (error) {
+        if (result.success && result.content) {
+            return result.content;
+        } else {
+            throw result.error || new Error("Failed to generate response");
+        }
+    } catch (error: any) {
         console.error("Error chatting with AI:", error);
-        throw error;
+
+        // Provide specific error messages
+        if (error?.status === 429 || error?.message?.includes('rate limit')) {
+            throw new Error("All API providers rate limited. Please try again in a moment.");
+        } else if (error?.message) {
+            throw error;
+        } else {
+            throw new Error("Failed to chat with AI. Please try again.");
+        }
     }
 }
 
