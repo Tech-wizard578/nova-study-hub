@@ -107,9 +107,20 @@ const Dashboard = () => {
                 <div className="container mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Sparkles className="w-6 h-6 text-primary animate-pulse" />
-                        <h1 className="text-2xl font-display font-bold gradient-text">
-                            Welcome back, {profile?.name || user?.email?.split('@')[0]}!
-                        </h1>
+                        <div className="flex flex-col">
+                            <h1 className="text-2xl font-display font-bold gradient-text">
+                                Welcome back, {profile?.name || user?.email?.split('@')[0]}!
+                            </h1>
+                            <div className="flex items-center gap-2 mt-1">
+                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20">
+                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                    <span className="text-xs font-medium text-green-600 dark:text-green-400">Signed In</span>
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                    as {user?.email}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                     <div className="flex items-center gap-3">
                         <Button variant="glow" onClick={() => navigate('/upload')} className="btn-glow">

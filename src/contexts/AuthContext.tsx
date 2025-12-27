@@ -6,9 +6,11 @@ interface AuthContextType {
     user: User | null
     profile: any | null
     signIn: (email: string, password: string) => Promise<void>
+    signInWithGoogle: () => Promise<void>
     signUp: (email: string, password: string, name: string, batch: string, section: string) => Promise<void>
     signOut: () => Promise<void>
     updateNickname: (nickname: string) => Promise<void>
+    isAdmin: () => boolean
     loading: boolean
 }
 
@@ -31,10 +33,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })
 
         // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             setUser(session?.user ?? null)
             if (session?.user) {
-                loadProfile(session.user.id)
+                await loadProfile(session.user.id)
+
+                // Handle OAuth redirect after sign-in
+                if (event === 'SIGNED_IN' && session.user.app_metadata.provider === 'google') {
+                    // Check if user is admin and redirect accordingly
+                    if (session.user.email === 'aasheerwad009@gmail.com') {
+                        window.location.href = '/upload'
+                    } else {
+                        window.location.href = '/'
+                    }
+                }
             } else {
                 setProfile(null)
                 setLoading(false)
@@ -66,7 +78,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (data) {
                 setProfile(data)
             } else {
-                console.warn("No profile found for user:", userId)
+                // Profile doesn't exist - this happens with OAuth signups
+                // Get user data from auth.users table
+                const { data: { user } } = await supabase.auth.getUser()
+
+                if (user) {
+                    console.log("Creating profile for OAuth user:", user.email)
+
+                    // Create profile with data from OAuth provider
+                    const { data: newProfile, error: insertError } = await supabase
+                        .from('users')
+                        .insert([
+                            {
+                                id: userId,
+                                email: user.email,
+                                name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+                                batch: user.user_metadata?.batch || '',
+                                section: user.user_metadata?.section || '',
+                                points: 0,
+                                streak_days: 0,
+                                role: user.email === 'aasheerwad009@gmail.com' ? 'admin' : 'student'
+                            },
+                        ])
+                        .select()
+                        .single()
+
+                    if (insertError) {
+                        console.error('Error creating OAuth user profile:', insertError)
+                    } else {
+                        setProfile(newProfile)
+                        console.log("✅ Profile created successfully for:", user.email)
+                    }
+                } else {
+                    console.warn("No user found in auth.users")
+                }
             }
         } catch (error) {
             console.error("Unexpected error loading profile:", error)
@@ -177,18 +222,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await loadProfile(user.id)
     }
 
-    const signOut = async () => {
-        const { error } = await supabase.auth.signOut()
+    const signInWithGoogle = async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}/dashboard`,
+            },
+        })
+
         if (error) throw error
+    }
+
+    const isAdmin = () => {
+        if (!user || !profile) return false
+        // Check if user email matches admin email or if role is admin
+        return user.email === 'aasheerwad009@gmail.com' || profile.role === 'admin'
+    }
+
+    const signOut = async () => {
+        console.log('AuthContext: signOut called, calling supabase.auth.signOut()...');
+
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Sign out timeout')), 3000)
+        );
+
+        try {
+            const signOutPromise = supabase.auth.signOut();
+            const { error } = await Promise.race([signOutPromise, timeoutPromise]) as any;
+
+            console.log('AuthContext: supabase.auth.signOut() completed', { error });
+            if (error) {
+                console.error('AuthContext: signOut error:', error);
+                throw error;
+            }
+            console.log('AuthContext: signOut successful');
+        } catch (error: any) {
+            if (error.message === 'Sign out timeout') {
+                console.warn('AuthContext: signOut timed out, forcing local sign out');
+                // Force local sign out by clearing storage
+                localStorage.clear();
+                sessionStorage.clear();
+            } else {
+                throw error;
+            }
+        }
     }
 
     const value = {
         user,
         profile,
         signIn,
+        signInWithGoogle,
         signUp,
         signOut,
         updateNickname,
+        isAdmin,
         loading
     }
 
